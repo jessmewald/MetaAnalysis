@@ -1,0 +1,91 @@
+---
+title: "PCB Metagenome Meta-analysis"
+author: "Jessica M. Ewald"
+---
+
+##### Datasets:
+Wang, Shanquan, et al. "Microbial synergistic interactions for reductive dechlorination of polychlorinated biphenyls." Science of the Total Environment 666 (2019): 368-376.
+PCB-fed metagenomes for strains CG3 and SG1 (Accession: SRR2062390, SRR2062395)
+
+Wang, Shanquan, et al. "Genomic characterization of three unique Dehalococcoides that respire on persistent polychlorinated biphenyls." Proceedings of the National Academy of Sciences 111.33 (2014): 12103-12108.
+PCB-fed metagenomes for strains CG1, CG4 and CG5 (Accession: SRR1050524, SRR1050519, SRR1050527)
+
+##### Analysis Pipeline :
+All software installed in miniconda environments procured via the bioconda repository, to bulid databases and otherwise prepare software prior to running follow instructions on the softwares github page. github paages for each software will be linked above the relevant bash chunk.
+
+Create a directory structure, an example structure is shown below.
+image: ![](/home/jewald/hpchome/metagenome/directory_structure.png) 
+
+The scripts directory will contain all .sh files to be submitted as jobs to the HPC, all scripts below can be incorporated into the appropriate job submission template.
+
+```{bash}
+mkdir meta_analysis
+cd meta_analysis
+mkdir scripts raw_reads processed_reads
+```
+
+
+Download datasets with [SRA Explorer](https://sra-explorer.info/)
+Search Datasets, add them to collection, and use the bash script to download and rename.
+
+```{bash}
+cd ../raw_reads
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/007/SRR1050527/SRR1050527_1.fastq.gz -o SRR1050527_PCB-fed_mixed_Dehalococcoides_culture_CG5_1.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/007/SRR1050527/SRR1050527_2.fastq.gz -o SRR1050527_PCB-fed_mixed_Dehalococcoides_culture_CG5_2.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR206/005/SRR2062395/SRR2062395_1.fastq.gz -o SRR2062395_SG1_PCB-Fed_Metagenome_1.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR206/005/SRR2062395/SRR2062395_2.fastq.gz -o SRR2062395_SG1_PCB-Fed_Metagenome_2.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/004/SRR1050524/SRR1050524_1.fastq.gz -o SRR1050524_PCB-fed_mixed_Dehalococcoides_culture_CG1_1.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/004/SRR1050524/SRR1050524_2.fastq.gz -o SRR1050524_PCB-fed_mixed_Dehalococcoides_culture_CG1_2.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/009/SRR1050519/SRR1050519_1.fastq.gz -o SRR1050519_PCB-fed_mixed_Dehalococcoides_culture_CG4_1.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/009/SRR1050519/SRR1050519_2.fastq.gz -o SRR1050519_PCB-fed_mixed_Dehalococcoides_culture_CG4_2.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR206/000/SRR2062390/SRR2062390_1.fastq.gz -o SRR2062390_CG3_PCB-Fed_Metagenome_1.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR206/000/SRR2062390/SRR2062390_2.fastq.gz -o SRR2062390_CG3_PCB-Fed_Metagenome_2.fastq.gz
+```
+
+
+[Trimmomatic](https://github.com/usadellab/Trimmomatic) outputs 4 files, where .trim files represent reads that passed filtering, and .orphaned files represent the case where a read survived, but the partner read did not.
+
+Run in PE mode.
+The paired end mode will maintain correspondence of read pairs and use the additional information contained in paired reads to better find adapter or PCR primer fragments introduced by the library preparation process.
+
+Check out this useful [tutorial](https://datacarpentry.org/wrangling-genomics/03-trimming/) on Trimmomatic.
+
+```{bash}
+set -e
+cd ../raw_reads/
+conda activate trimmomatic
+for filename in *_1.fastq.gz
+do
+    base=$(basename ${filename} _1.fastq.gz)
+    trimmomatic PE ${filename} ${base}_2.fastq.gz \
+        ${base}_1.trim.fastq.gz ${base}_1.orphaned.fastq.gz \
+        ${base}_2.trim.fastq.gz ${base}_2.orphaned.fastq.gz \
+        SLIDINGWINDOW:4:20 MINLEN:25 ILLUMINACLIP:TruSeq2-PE.fa:2:30:10
+done
+
+cd ../processed_reads/
+mkdir trimmed
+mkdir unpaired
+cd ../raw_reads/
+mv *.trim* ../processed_reads/trimmed
+mv *.orphaned* ../processed_reads/unpaired 
+```
+
+
+Assign taxonomy to reads with [Kraken2](https://github.com/DerrickWood/kraken2). Use trimmed PE reads as input, kraken2 will autodetect gzip file format, redirect output to processed reads/kraken directory
+
+```{bash}
+set -e
+cd ../processed_reads/
+mkdir kraken
+
+cd trimmed/
+conda activate bracken
+
+for f in *_1.trim.fastq.gz
+do
+base=$(basename ${f} _1.trim.fastq.gz)
+   kraken2 --db /path/to/kraken_db  --paired ${f} ${base}_2.trim.fastq.gz --use-names --report ../kraken/"${base}"_kraken_report --output ../kraken/"${base}"_kraken.out
+done
+```
+
