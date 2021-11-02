@@ -1,0 +1,40 @@
+---
+title: "kraken_taxonomy"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+library(tidyverse)
+
+```{r}
+phylum <- read_tsv("metagenome_p.tsv", col_names = TRUE)
+```
+
+```{r}
+phylum_percent_clade <- phylum %>% rename(percent_clade = combined_kraken_report.cladeReads..) %>% select(name, percent_clade) %>% filter(percent_clade > 0.5)
+phylum_percent_plot <- pie(phylum_percent_clade$percent_clade, labels = phylum_percent_clade$name, cex=0.75, main = "Phylums that represent > 1% ")
+```
+
+
+```{r}
+phylum_onepercent <- phylum %>% filter(percent_clade < .1) %>% arrange()
+```
+
+
+
+```{r}
+family <- read_tsv("metagenome_f.tsv", col_names = TRUE)
+family_percent_clade <- family %>% rename(percent_clade = combined_kraken_report.cladeReads..) %>% select(name, percent_clade) %>% filter(percent_clade > 1) %>% arrange()
+family_percent_plot <- pie(family_percent_clade$percent_clade, labels = family_percent_clade$name, cex=0.75, main = "Families that represent > 1% ")
+```
+
+
+```{r}
+chloroflexi_family<- family %>% rename(percent_clade = combined_kraken_report.cladeReads..) %>% filter(grepl('Chloroflexi', lineage))
+chloroflexi_family_plot <- pie(chloroflexi_family$percent_clade, labels = chloroflexi_family$name, cex=0.75)
+```
+
