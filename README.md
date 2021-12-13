@@ -22,11 +22,9 @@ PCB-sediment microcosms (Accession: SRR15035646, SRR15035645)
 To obtain the datasets, we reccomend using [SRA Explorer](https://sra-explorer.info/) to search the SRA, add desired datasets to a collection, and generate a bash script that downloads and renames the FASTq files.
 
 
-"
 ### Analysis Pipeline :
 All software installed in miniconda environments procured via the bioconda repository, to bulid databases and otherwise prepare software prior to running follow instructions on the softwares github page. The Github pages for each software are linked within the run files.
 
 
 ### Reproducible Directory Structure for Generalizable Workflow :
-
 The analysis pipeline incorporates several key features meant to aid in reproducibility. If users would like more background on these processes, we reccomend checking out [riffomonas](https://riffomonas.org/reproducible_research/) for extensive training and tutorials. 
