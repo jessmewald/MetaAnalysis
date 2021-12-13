@@ -22,7 +22,7 @@ PCB-sediment microcosms (Accession: SRR15035646, SRR15035645)
 To obtain the datasets, we reccomend using [SRA Explorer](https://sra-explorer.info/) to search the SRA, add desired datasets to a collection, and generate a bash script that downloads and renames the FASTq files.
 
 
-### Analysis Pipeline :
+### Software Installation :
 All software installed in miniconda environments procured via the bioconda repository, to bulid databases and otherwise prepare software prior to running follow instructions on the softwares github page. The Github pages for each software are linked within the run files.
 
 
