@@ -6,9 +6,12 @@ author: "Jessica M. Ewald"
 ##### Datasets:
 Wang, Shanquan, et al. "Microbial synergistic interactions for reductive dechlorination of polychlorinated biphenyls." Science of the Total Environment 666 (2019): 368-376.
 PCB-fed metagenomes for strains CG3 and SG1 (Accession: SRR2062390, SRR2062395)
+PCE-fed metagenomes for strains CG3 and SG1 (Accession: SRR2062392, SRR2062398) 
+
 
 Wang, Shanquan, et al. "Genomic characterization of three unique Dehalococcoides that respire on persistent polychlorinated biphenyls." Proceedings of the National Academy of Sciences 111.33 (2014): 12103-12108.
 PCB-fed metagenomes for strains CG1, CG4 and CG5 (Accession: SRR1050524, SRR1050519, SRR1050527)
+PCE-fed metagenomes for strains CG1, CG4 and CG5 (Accession: SRR1050525, SRR1050523, SRR1050528)
 
 ##### Analysis Pipeline :
 All software installed in miniconda environments procured via the bioconda repository, to bulid databases and otherwise prepare software prior to running follow instructions on the softwares github page. github paages for each software will be linked above the relevant bash chunk.
@@ -42,6 +45,19 @@ curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR206/000/SRR2062390/SRR2062390_1.fa
 curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR206/000/SRR2062390/SRR2062390_2.fastq.gz -o SRR2062390_CG3_PCB-Fed_Metagenome_2.fastq.gz
 ```
 
+```{bash}
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR206/002/SRR2062392/SRR2062392_1.fastq.gz -o SRR2062392_CG3_PCE-Fed_Metagenome_1.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR206/002/SRR2062392/SRR2062392_2.fastq.gz -o SRR2062392_CG3_PCE-Fed_Metagenome_2.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/003/SRR1050523/SRR1050523_1.fastq.gz -o SRR1050523_PCE-fed_mixed_Dehalococcoides_culture_CG4_1.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/003/SRR1050523/SRR1050523_2.fastq.gz -o SRR1050523_PCE-fed_mixed_Dehalococcoides_culture_CG4_2.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/005/SRR1050525/SRR1050525_1.fastq.gz -o SRR1050525_PCE-fed_mixed_Dehalococcoides_culture_CG1_1.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/005/SRR1050525/SRR1050525_2.fastq.gz -o SRR1050525_PCE-fed_mixed_Dehalococcoides_culture_CG1_2.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/008/SRR1050528/SRR1050528_1.fastq.gz -o SRR1050528_PCE-fed_mixed_Dehalococcoides_culture_CG5_1.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/008/SRR1050528/SRR1050528_2.fastq.gz -o SRR1050528_PCE-fed_mixed_Dehalococcoides_culture_CG5_2.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR206/008/SRR2062398/SRR2062398_1.fastq.gz -o SRR2062398_SG1_PCE-Fed_Metagenome_1.fastq.gz
+curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR206/008/SRR2062398/SRR2062398_2.fastq.gz -o SRR2062398_SG1_PCE-Fed_Metagenome_2.fastq.gz
+```
+
 
 [Trimmomatic](https://github.com/usadellab/Trimmomatic) outputs 4 files, where .trim files represent reads that passed filtering, and .orphaned files represent the case where a read survived, but the partner read did not.
 
@@ -72,7 +88,7 @@ mv *.orphaned* ../processed_reads/unpaired
 ```
 
 
-Assign taxonomy to reads with [Kraken2](https://github.com/DerrickWood/kraken2). Use trimmed PE reads as input, kraken2 will autodetect gzip file format, redirect output to processed reads/kraken directory
+Assign taxonomy to reads with [Kraken2](https://github.com/DerrickWood/kraken2). Use trimmed PE reads as input, kraken2 will autodetect gzip file format, redirect output to processed reads/kraken directory.
 
 ```{bash}
 set -e
@@ -88,4 +104,32 @@ base=$(basename ${f} _1.trim.fastq.gz)
    kraken2 --db /path/to/kraken_db  --paired ${f} ${base}_2.trim.fastq.gz --use-names --report ../kraken/"${base}"_kraken_report --output ../kraken/"${base}"_kraken.out
 done
 ```
+
+
+Superfocus for functional analysis
+superfocus only accepts .fastq files (no gzip)
+
+```{bash}
+cd ../processed_reads/trimmed/
+mkdir unzip_fastq gzip cat_reads
+gunzip *.gz
+
+for f in *_1.trim.fastq
+do
+base=$(basename ${f} _1.trim.fastq)
+cat ${f} ${base}_2.trim.fastq > ${base}_cat.fastq
+done
+
+mv *_cat.fastq cat_reads/
+mv *.fastq unzip_fastq/
+mv *.gz gzip/
+
+cd meta_analysis/processed_reads
+mkdir superfocus
+ 
+cd path/to/batabase
+conda activate super-focus
+superfocus -q /Shared/lss_jewald/meta_analysis/processed_reads/trimmed/cat_reads -dir /Shared/lss_jewald/meta_analysis/processed_reads/superfocus -a diamond -t 32
+```
+
 
